@@ -1,0 +1,384 @@
+---
+title: "NCD_Cardiac"
+author: "Capstone_Hyderabad"
+date: "Wednesday, July 05, 2017"
+output: word_document
+---
+
+
+
+### Load required libraries
+
+
+```{r }
+library(caret)
+library(rpart)
+library(ROCR)
+library(ineq)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(stringr)
+library(rattle)
+library(RColorBrewer)
+library(lmtest)
+library(pscl)
+require(caret)
+library(mlbench)
+
+```
+
+
+
+### Load dataset
+
+
+```{r}
+
+setwd("C:\\Material\\CAPStone\\Scripts")
+data <- read.csv("ncd_latest_062817.csv")
+
+source("required_user_functions.R")
+
+d_data <- subset(data, Cardiac %in% c('No','Yes') & ALIVE...DEAD == 'ALIVE')
+
+data_d <- subset(d_data, select = c(     "FINANCIAL.GROUP","FAMILY.HISTORY","STAPLE.FOOD","ALCOHOL","Known.H.o.Smoking","Cholestrol.High","PhysicalActivity","Obese","Diabetes","Cancer","Cardiac"))
+str(data_d)
+
+
+colnames(data_d)[1] <- "Fin_Group"                      
+colnames(data_d)[2] <- "Family_history"                       
+colnames(data_d)[3] <- "Staple_Food"                          
+colnames(data_d)[4] <- "Alcohol"                              
+colnames(data_d)[5] <- "Smoke"                  
+colnames(data_d)[6] <- "High_Cholestrol"                      
+colnames(data_d)[7] <- "Phy_Activity"                      
+colnames(data_d)[8] <- "Obese"                                 
+colnames(data_d)[9] <- "Diabetes"                              
+colnames(data_d)[10] <- "Cancer"                                
+colnames(data_d)[11] <- "Cardiac"                              
+
+
+cardiac_vector <- c("Fin_Group","Family_history","Staple_Food","Alcohol","Smoke","High_Cholestrol","Phy_Activity","Obese","Diabetes","Cancer")
+  
+
+data_d$Obese <- ifelse(data_d$Obese > 30,'Y','N')
+data_d$Obese <- as.factor(data_d$Obese)
+str(data_d)
+
+names(data_d)
+
+nrow(data_d)
+ 
+count(data_d, vars=c("Cardiac"))
+
+
+```
+
+### Split the data into two sets each containing 1500 records of Cardiac and Not Cardiac
+
+``` {r}
+d_d <- subset(data_d,Cardiac == 'Yes')
+d_n <- subset(data_d,Cardiac == 'No')
+#
+NCD <- "Cardiac"
+displaySplitCount(d_d$Cardiac,"1",NCD)
+displaySplitCount(d_n$Cardiac,"2",NCD)
+
+set.seed(123)
+
+smp_size1 = min(1000,nrow(d_d))
+samp_ind1 <- sample(seq_len(nrow(d_d)), size = smp_size1)
+d1 <- d_d[samp_ind1,]
+
+smp_size2 = min(1000,nrow(d_n))
+samp_ind2 <- sample(seq_len(nrow(d_n)), size = smp_size2)
+d2 <- d_n[samp_ind2,]
+
+print(head(d1))
+print(nrow(d1))
+print(head(d2))
+print(nrow(d2))
+
+displaySplitCount(d1$Cardiac,"1",NCD)
+displaySplitCount(d2$Cardiac,"2",NCD)
+
+
+```
+
+### Split dataset d1 into training dataset and testing dataset in the ratio 70 % : 30 %
+
+``` {r}
+set.seed(123)
+rnd <- sort(sample(nrow(d1),nrow(d1)*.7))
+d1_train <- d1[rnd,]
+d1_test <- d1[-rnd,]
+
+print(nrow(d1_train))
+print(nrow(d1_test))
+
+```
+
+### Split dataset d2 into training dataset and testing dataset
+
+``` {r}
+
+d2_train <- d2[rnd,]
+d2_test <- d2[-rnd,]
+
+print(nrow(d2_train))
+print(nrow(d2_test))
+
+d2_train <- d2_train[complete.cases(d2_train),]
+
+```
+
+
+### Merge d1_train (Cardiac dataset) and d2_train (Non-Cardiac dataset) to form training dataset
+
+``` {r}
+
+d_train <- bind_rows(d1_train,d2_train)
+d_test <- bind_rows(d1_test,d2_test)
+
+print(nrow(d_train))
+print(nrow(d_test))
+
+
+
+```
+
+### Check the dataset the proportion of Cardiac and Non-Cardiac
+
+``` {r}
+
+Yes1_train <- length(which(str_trim(d1_train$Cardiac) == 'Yes'))
+No1_train <- length(which(str_trim(d1_train$Cardiac) == 'No'))
+
+cat("\n Cardiac  Count Yes: ",Yes1_train," No: ",No1_train)
+
+Yes2_train <- length(which(str_trim(d2_train$Cardiac) == 'Yes'))
+No2_train <- length(which(str_trim(d2_train$Cardiac) == 'No'))
+
+cat("\n Cardiac  Count Yes: ",Yes2_train," No: ",No2_train)
+
+Yes1_test <- length(which(str_trim(d1_test$Cardiac) == 'Yes'))
+No1_test  <- length(which(str_trim(d1_test$Cardiac) == 'No'))
+
+cat("\n Cardiac  Count Yes: ",Yes1_test," No: ",No1_test)
+
+Yes2_test <- length(which(str_trim(d2_test$Cardiac) == 'Yes'))
+No2_test  <- length(which(str_trim(d2_test$Cardiac) == 'No'))
+
+###
+
+cat("\n Train dataset file Cardiac  Count : ",nrow(d_train))
+table(d_train$Cardiac)
+
+cat("\n Test dataset file Cardiac  Count : ",nrow(d_test))
+table(d_test$Cardiac)
+          
+```
+
+### Remove unwanted variables
+
+#### The following columns are not required for Diabetes - NCD:
+
+1) "S.NO."                                 
+2) "Year"                                  
+3) "ALIVE...DEAD"                          
+4) "RELIGION"                              
+5) "Random.Blood.Sugar"                    
+6) "HBA1C"                                 
+7) "Specialty.of.Treatment" 
+8) "Height"                                
+9) "Weight"                                
+
+
+``` {r}
+for (e in 1:length(cardiac_vector)){
+eda_functions("Cardiac",d_train,d_train[,"Cardiac"],d_train[,e],cardiac_vector[e])
+  }
+printggPlot2(d_train,d_train$Fin_Group,d_train$Cardiac,colnames(data_d)[1],colnames(data_d)[11])
+```
+
+###  Interpretation
+#### Lower Middle class people are more prone to Cardiac (29%)
+```{r}
+printggPlot2(d_train,d_train$Family_history,d_train$Cardiac,colnames(data_d)[2],colnames(data_d)[11])
+```
+
+###  Interpretation
+#### People having family history of Cardiac are more prone to Cardiac(25.14%)
+
+```{r}
+printggPlot2(d_train,d_train$Staple_Food,d_train$Cardiac,colnames(data_d)[3],colnames(data_d)[11])
+```
+
+###  Interpretation
+#### People having Staple Food are more prone to Cardiac(48.7%)
+```{r}
+printggPlot2(d_train,d_train$Alcohol,d_train$Cardiac,colnames(data_d)[4],colnames(data_d)[11])
+```
+
+###  Interpretation
+#### People having Alcohol habit are more prone to Cardiac(25.4%)
+```{r}
+printggPlot2(d_train,d_train$Smoke,d_train$Cardiac,colnames(data_d)[5],colnames(data_d)[11])
+```
+
+###  Interpretation
+#### People having Smoking habit are more prone to Cardiac(23.14%)
+```{r}
+printggPlot2(d_train,d_train$High_Cholestrol,d_train$Cardiac,colnames(data_d)[6],colnames(data_d)[11])
+```
+
+###  Interpretation
+#### People having High_Cholestrol are more prone to Cardiac(40.8%)
+```{r}
+printggPlot2(d_train,d_train$Phy_Activity,d_train$Cardiac,colnames(data_d)[7],colnames(data_d)[11])
+```
+
+###  Interpretation
+#### People not having Phy_Activity are more prone to Cardiac(23.71%)
+```{r}
+printggPlot2(d_train,d_train$Obese,d_train$Cardiac,colnames(data_d)[8],colnames(data_d)[11])
+
+```
+
+###  Interpretation
+#### People having obese are less prone to Cardiac(7.2%)
+
+
+```{r}
+printggPlot2(d_train,d_train$Diabetes,d_train$Cardiac,colnames(data_d)[9],colnames(data_d)[11])
+
+```
+
+###  Interpretation
+#### People having Dibetes are more prone to Cardiac(10.2%)
+
+```{r}
+printggPlot2(d_train,d_train$Diabetes,d_train$Cardiac,colnames(data_d)[10],colnames(data_d)[11])
+
+```
+
+###  Interpretation
+#### People having Cardiac are more prone to Cardiac(10.2%)
+
+## CART
+
+``` {r}
+
+formula <- Cardiac ~ Fin_Group + Family_history + Staple_Food + Alcohol +  Smoke + High_Cholestrol + Phy_Activity + Obese + Diabetes + Cardiac
+title <- "Classification Tree for Cardiac"
+df <- d_train
+fit<-NULL
+pfit <- cart_fn(df, formula, title)
+
+ 
+ fancyRpartPlot(pfit)
+varImp(object=fit)
+  plot(varImp(fit))
+
+```
+
+#### Interpretation of Variable Importance for Crdiac
+###### Above graph shows the top 10 important variables.high cholestrol,Cancer and diabetes are the top influencing predictors.
+###### Physical activity,smoking,Financial group and Alcohol comsumption also have significant importance.
+
+
+### Performance measures using training data
+
+``` {r}
+target <- d_train[,'Cardiac']
+title <- 'Training dataset'
+perf_measures1 <- perf_measures_cart(d_train,pfit,target,title)
+
+print(perf_measures1)
+cat("\n OA is overall accuracy \n")
+
+
+```
+
+### Performance measures using test data
+
+``` {r}
+target <- d_test[,'Cardiac']
+title <- 'Test dataset'
+perf_measures2 <- perf_measures_cart(d_test,pfit,target,title)
+
+print(perf_measures2)
+cat("\n OA is overall accuracy \n")
+
+
+```
+
+
+
+
+
+
+### Logistic Regression
+
+```{r}
+strTarget<-"Cardiac"
+formula <- Cardiac ~ Fin_Group + Family_history + 
+                Staple_Food + Alcohol +  Smoke + High_Cholestrol + Phy_Activity + Obese + Diabetes + Cancer
+logit=logistic(formula,d_train)
+summary(logit)
+```
+
+#### Interpretation of Variable Importance for cardiac based on Coefficients table shown above
+
+###### Smoking is the only significance predicator.Rest are not having any importance at significance level of 95%
+
+```{r}
+perf <- pR2(logit)
+print(perf)
+```
+
+
+### Logistic Regression Performance measures using training data
+
+``` {r}
+target <- d_train[,'Cardiac']
+title <- 'Training dataset'
+
+perf_measures1 <- perf_measures_logistic(d_train,logit,target,title)
+print(perf_measures1)
+cat("\n OA is overall accuracy \n")
+
+
+```
+
+### Logistic Regression Performance measures using test data
+
+``` {r}
+target <- d_test[,'Cardiac']
+title <- 'Test dataset'
+perf_measures2 <- perf_measures_logistic(d_test,logit,target,title)
+
+print(perf_measures2)
+cat("\n OA is overall accuracy \n")
+
+varImp(logit, scale = FALSE)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+### End of R script
+
+
+```
+
