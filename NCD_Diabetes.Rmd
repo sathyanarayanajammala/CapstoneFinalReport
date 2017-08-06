@@ -26,6 +26,7 @@ library(lmtest)
 library(pscl)
 require(caret)
 library(mlbench)
+library(DMwR)
 
 ```
 
@@ -112,6 +113,7 @@ displaySplitCount(d2$Diabetes,"2",NCD)
 ``` {r}
 set.seed(123)
 rnd <- sort(sample(nrow(d1),nrow(d1)*.7))
+rnd
 d1_train <- d1[rnd,]
 d1_test <- d1[-rnd,]
 
@@ -200,55 +202,7 @@ for (e in 1:length(diabetes_vector)){
 eda_functions("Diabetes",d_train,d_train[,"Diabetes"],d_train[,e],diabetes_vector[e])
   }
 
-printggPlot2(d_train,d_train$Fin_Group,d_train$Diabetes,colnames(data_d)[1],colnames(data_d)[9])
-```
 
-###  Interpretation
-#### Lower Middle class people are more prone to diabetes (24.5%)
-```{r}
-printggPlot2(d_train,d_train$Family_history,d_train$Diabetes,colnames(data_d)[2],colnames(data_d)[9])
-```
-
-###  Interpretation
-#### People having family history of diabetes are more prone to diabetes(31.9%)
-
-```{r}
-printggPlot2(d_train,d_train$Staple_Food,d_train$Diabetes,colnames(data_d)[3],colnames(data_d)[9])
-```
-
-###  Interpretation
-#### People having Staple Food are more prone to diabetes(48.7%)
-```{r}
-printggPlot2(d_train,d_train$Alcohol,d_train$Diabetes,colnames(data_d)[4],colnames(data_d)[9])
-```
-
-###  Interpretation
-#### People having Alcohol habit are more prone to diabetes(27.14%)
-```{r}
-printggPlot2(d_train,d_train$Smoke,d_train$Diabetes,colnames(data_d)[5],colnames(data_d)[9])
-```
-
-###  Interpretation
-#### People having Smoking habit are more prone to diabetes(31.7%)
-```{r}
-printggPlot2(d_train,d_train$High_Cholestrol,d_train$Diabetes,colnames(data_d)[6],colnames(data_d)[9])
-```
-
-###  Interpretation
-#### People having High_Cholestrol are more prone to diabetes(30.9%)
-```{r}
-printggPlot2(d_train,d_train$Phy_Activity,d_train$Diabetes,colnames(data_d)[7],colnames(data_d)[9])
-```
-
-###  Interpretation
-#### People not having Phy_Activity are more prone to diabetes(32.3%)
-```{r}
-printggPlot2(d_train,d_train$Obese,d_train$Diabetes,colnames(data_d)[8],colnames(data_d)[9])
-
-```
-
-###  Interpretation
-#### People having obese are more prone to diabetes(42.1%)
 
 ## CART
 

@@ -203,65 +203,6 @@ eda_functions("Cancer",d_train,d_train[,"Cancer"],d_train[,e],cancer_vector[e])
   }
 ```
 
-```{r}
-printggPlot2(d_train,d_train$Fin_Group,d_train$Cancer,colnames(data_d)[1],colnames(data_d)[10])
-```
-
-###  Interpretation
-#### Lower Middle class people are more prone to Cancer (30.2%)
-```{r}
-printggPlot2(d_train,d_train$Family_history,d_train$Cancer,colnames(data_d)[2],colnames(data_d)[10])
-```
-
-###  Interpretation
-#### People having family history of Cancer are more prone to Cancer(31.4%)
-
-```{r}
-printggPlot2(d_train,d_train$Staple_Food,d_train$Cancer,colnames(data_d)[3],colnames(data_d)[10])
-```
-
-###  Interpretation
-#### People having Staple Food are more prone to Cancer(58.9%)
-```{r}
-printggPlot2(d_train,d_train$Alcohol,d_train$Cancer,colnames(data_d)[4],colnames(data_d)[10])
-```
-
-###  Interpretation
-#### People having Alcohol habit are more prone to Cancer(38.6%)
-```{r}
-printggPlot2(d_train,d_train$Smoke,d_train$Cancer,colnames(data_d)[5],colnames(data_d)[10])
-```
-
-###  Interpretation
-#### People having Smoking habit are more prone to Cancer(28.3%)
-```{r}
-printggPlot2(d_train,d_train$High_Cholestrol,d_train$Cancer,colnames(data_d)[6],colnames(data_d)[10])
-```
-
-###  Interpretation
-#### People having High_Cholestrol are more prone to Cancer(22.8%)
-```{r}
-printggPlot2(d_train,d_train$Phy_Activity,d_train$Cancer,colnames(data_d)[7],colnames(data_d)[10])
-```
-
-###  Interpretation
-#### People not having Phy_Activity are more prone to Cancer(32.6%)
-```{r}
-printggPlot2(d_train,d_train$Obese,d_train$Cancer,colnames(data_d)[8],colnames(data_d)[10])
-
-```
-
-###  Interpretation
-#### People having obese are more prone to Cancer(8.9%)
-
-```{r}
-printggPlot2(d_train,d_train$Diabetes,d_train$Cancer,colnames(data_d)[9],colnames(data_d)[10])
-
-```
-
-###  Interpretation
-#### People having Dibetes are more prone to Cancer(10.2%)
-
 ## CART
 
 ``` {r}
