@@ -26,7 +26,8 @@ library(lmtest)
 library(pscl)
 require(caret)
 library(mlbench)
-
+library(ROSE)
+library(caTools)
 ```
 
 
@@ -72,200 +73,51 @@ names(data_d)
 nrow(data_d)
  
 count(data_d, vars=c("Cardiac"))
-
-
-```
-
-### Split the data into two sets each containing 1500 records of Cardiac and Not Cardiac
-
-``` {r}
-d_d <- subset(data_d,Cardiac == 'Yes')
-d_n <- subset(data_d,Cardiac == 'No')
-#
-NCD <- "Cardiac"
-displaySplitCount(d_d$Cardiac,"1",NCD)
-displaySplitCount(d_n$Cardiac,"2",NCD)
-
-set.seed(123)
-
-smp_size1 = min(1000,nrow(d_d))
-samp_ind1 <- sample(seq_len(nrow(d_d)), size = smp_size1)
-d1 <- d_d[samp_ind1,]
-
-smp_size2 = min(1000,nrow(d_n))
-samp_ind2 <- sample(seq_len(nrow(d_n)), size = smp_size2)
-d2 <- d_n[samp_ind2,]
-
-print(head(d1))
-print(nrow(d1))
-print(head(d2))
-print(nrow(d2))
-
-displaySplitCount(d1$Cardiac,"1",NCD)
-displaySplitCount(d2$Cardiac,"2",NCD)
-
-
-```
-
-### Split dataset d1 into training dataset and testing dataset in the ratio 70 % : 30 %
-
-``` {r}
-set.seed(123)
-rnd <- sort(sample(nrow(d1),nrow(d1)*.7))
-d1_train <- d1[rnd,]
-d1_test <- d1[-rnd,]
-
-print(nrow(d1_train))
-print(nrow(d1_test))
-
-```
-
-### Split dataset d2 into training dataset and testing dataset
-
-``` {r}
-
-d2_train <- d2[rnd,]
-d2_test <- d2[-rnd,]
-
-print(nrow(d2_train))
-print(nrow(d2_test))
-
-d2_train <- d2_train[complete.cases(d2_train),]
-
-```
-
-
-### Merge d1_train (Cardiac dataset) and d2_train (Non-Cardiac dataset) to form training dataset
-
-``` {r}
-
-d_train <- bind_rows(d1_train,d2_train)
-d_test <- bind_rows(d1_test,d2_test)
-
-print(nrow(d_train))
-print(nrow(d_test))
+data_d$Fin_Group=as.numeric(factor(data_d$Fin_Group))-1
+data_d$Family_history=as.numeric(factor(data_d$Family_history))-1
+data_d$Staple_Food=as.numeric(factor(data_d$Staple_Food))-1
+data_d$Alcohol=as.numeric(factor(data_d$Alcohol))-1
+data_d$Smoke=as.numeric(factor(data_d$Smoke))-1
+data_d$High_Cholestrol=as.numeric(factor(data_d$High_Cholestrol))-1
+data_d$Phy_Activity=as.numeric(factor(data_d$Phy_Activity))-1
+data_d$Obese=as.numeric(factor(data_d$Obese))-1
+data_d$Diabetes=as.numeric(factor(data_d$Diabetes))-1
+data_d$Cancer=as.numeric(factor(data_d$Cancer))-1
+data_d$Cardiac=as.numeric(factor(data_d$Cardiac))
+data_d$Cardiac=data_d$Cardiac-1
 
 
 
-```
-
-### Check the dataset the proportion of Cardiac and Non-Cardiac
-
-``` {r}
-
-Yes1_train <- length(which(str_trim(d1_train$Cardiac) == 'Yes'))
-No1_train <- length(which(str_trim(d1_train$Cardiac) == 'No'))
-
-cat("\n Cardiac  Count Yes: ",Yes1_train," No: ",No1_train)
-
-Yes2_train <- length(which(str_trim(d2_train$Cardiac) == 'Yes'))
-No2_train <- length(which(str_trim(d2_train$Cardiac) == 'No'))
-
-cat("\n Cardiac  Count Yes: ",Yes2_train," No: ",No2_train)
-
-Yes1_test <- length(which(str_trim(d1_test$Cardiac) == 'Yes'))
-No1_test  <- length(which(str_trim(d1_test$Cardiac) == 'No'))
-
-cat("\n Cardiac  Count Yes: ",Yes1_test," No: ",No1_test)
-
-Yes2_test <- length(which(str_trim(d2_test$Cardiac) == 'Yes'))
-No2_test  <- length(which(str_trim(d2_test$Cardiac) == 'No'))
-
-###
-
-cat("\n Train dataset file Cardiac  Count : ",nrow(d_train))
-table(d_train$Cardiac)
-
-cat("\n Test dataset file Cardiac  Count : ",nrow(d_test))
-table(d_test$Cardiac)
-          
-```
-
-### Remove unwanted variables
-
-#### The following columns are not required for Diabetes - NCD:
-
-1) "S.NO."                                 
-2) "Year"                                  
-3) "ALIVE...DEAD"                          
-4) "RELIGION"                              
-5) "Random.Blood.Sugar"                    
-6) "HBA1C"                                 
-7) "Specialty.of.Treatment" 
-8) "Height"                                
-9) "Weight"                                
-
-
-``` {r}
 for (e in 1:length(cardiac_vector)){
-eda_functions("Cardiac",d_train,d_train[,"Cardiac"],d_train[,e],cardiac_vector[e])
+eda_functions("Cardiac",data_d,data_d[,"Cardiac"],data_d[,e],cardiac_vector[e])
   }
-printggPlot2(d_train,d_train$Fin_Group,d_train$Cardiac,colnames(data_d)[1],colnames(data_d)[11])
+
 ```
 
-###  Interpretation
-#### Lower Middle class people are more prone to Cardiac (29%)
+## un balanced data
 ```{r}
-printggPlot2(d_train,d_train$Family_history,d_train$Cardiac,colnames(data_d)[2],colnames(data_d)[11])
+table(data_d$Cardiac)
 ```
-
-###  Interpretation
-#### People having family history of Cardiac are more prone to Cardiac(25.14%)
-
+### Using ROSE package Balanced the data
 ```{r}
-printggPlot2(d_train,d_train$Staple_Food,d_train$Cardiac,colnames(data_d)[3],colnames(data_d)[11])
-```
+mydata1 <- ROSE(Cardiac ~ .,data=data_d, seed = 123)$data
 
-###  Interpretation
-#### People having Staple Food are more prone to Cardiac(48.7%)
+table(mydata1$Cardiac)
+
+```
+### Split dataset  into training dataset and testing dataset in the ratio 70 % : 30 %
 ```{r}
-printggPlot2(d_train,d_train$Alcohol,d_train$Cardiac,colnames(data_d)[4],colnames(data_d)[11])
-```
 
-###  Interpretation
-#### People having Alcohol habit are more prone to Cardiac(25.4%)
-```{r}
-printggPlot2(d_train,d_train$Smoke,d_train$Cardiac,colnames(data_d)[5],colnames(data_d)[11])
-```
-
-###  Interpretation
-#### People having Smoking habit are more prone to Cardiac(23.14%)
-```{r}
-printggPlot2(d_train,d_train$High_Cholestrol,d_train$Cardiac,colnames(data_d)[6],colnames(data_d)[11])
-```
-
-###  Interpretation
-#### People having High_Cholestrol are more prone to Cardiac(40.8%)
-```{r}
-printggPlot2(d_train,d_train$Phy_Activity,d_train$Cardiac,colnames(data_d)[7],colnames(data_d)[11])
-```
-
-###  Interpretation
-#### People not having Phy_Activity are more prone to Cardiac(23.71%)
-```{r}
-printggPlot2(d_train,d_train$Obese,d_train$Cardiac,colnames(data_d)[8],colnames(data_d)[11])
+set.seed(88)
+split <- sample.split(mydata1, SplitRatio = 0.70)
+d_train <- subset(mydata1, split == TRUE)
+d_test <- subset(mydata1, split == FALSE)
 
 ```
 
-###  Interpretation
-#### People having obese are less prone to Cardiac(7.2%)
 
 
-```{r}
-printggPlot2(d_train,d_train$Diabetes,d_train$Cardiac,colnames(data_d)[9],colnames(data_d)[11])
 
-```
-
-###  Interpretation
-#### People having Dibetes are more prone to Cardiac(10.2%)
-
-```{r}
-printggPlot2(d_train,d_train$Diabetes,d_train$Cardiac,colnames(data_d)[10],colnames(data_d)[11])
-
-```
-
-###  Interpretation
-#### People having Cardiac are more prone to Cardiac(10.2%)
 
 ## CART
 
@@ -327,6 +179,7 @@ strTarget<-"Cardiac"
 formula <- Cardiac ~ Fin_Group + Family_history + 
                 Staple_Food + Alcohol +  Smoke + High_Cholestrol + Phy_Activity + Obese + Diabetes + Cancer
 logit=logistic(formula,d_train)
+
 summary(logit)
 ```
 
